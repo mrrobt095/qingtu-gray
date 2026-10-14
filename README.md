@@ -35,6 +35,8 @@
 - 💾 **自动保存，刷新不丢**：本批照片、设置和阴影笔画自动保存在本机，刷新或重启后自动恢复
 - ⚡ **识别结果缓存**：处理过的照片再次载入只需几秒，不用重新跑模型；切到其他窗口也会继续处理
 - 📚 **一批最多 60 张**：内存里只保留最近使用的 12 张完整数据，大批量也不卡
+- 🔍 **原图 / 成片拖动对比**：一条分割线左右拖，鞋边和阴影处理得好不好一眼看清
+- 🗂️ **为批量设计的界面**：两列缩略图带状态标记、“只看需检查”筛选、顶部进度和预计剩余时间
 - 🔒 **完全离线**：不联网、不上传，照片只在本机处理
 - 🖱️ **零安装**：解压后双击即可，不用装 Python、Node.js 或 Photoshop
 
@@ -60,7 +62,7 @@
 | 模板 | 保存常用设置，最多 20 个模板、12 个 Logo |
 | 导出 | 单张 JPG / PNG、整批 ZIP、整组分层 PSD（含成片，每组最多 12 张） |
 | 批量 | 每批最多 60 张；自动保存与恢复；已识别的照片几秒内重新载入 |
-| 编辑 | 撤销 / 重做 30 步、按住对比、查看原图、100% / 200% 放大检查 |
+| 编辑 | 撤销 / 重做 30 步、原图 / 成片拖动对比（C）、按住对比上次修改、100% / 200% 放大检查 |
 
 ## 隐私
 
@@ -137,6 +139,8 @@
 - **100% offline and private**: the local server only listens on `127.0.0.1`; nothing is uploaded
 - **Auto-save and recognition cache**: the batch, settings and brush strokes survive a refresh or restart, and photos already recognized reload in seconds
 - **Up to 60 photos per batch**, with memory kept in check by holding full working data for only the 12 most recent
+- **Before/after split slider** (key C) that overlays the original photo in exactly the output framing
+- **Batch-friendly UI**: two-column thumbnail grid with status badges, a "needs review" filter, and a progress bar with time remaining
 - **No install**: unzip and double-click, no Python, Node.js or Photoshop required
 
 ### Quick start

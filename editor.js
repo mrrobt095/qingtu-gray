@@ -6,6 +6,25 @@
   let result=null,previewResult=null,settings=null,disabled=true,visible=false,generation=0,chosen=null,interacting=false;
   let brush={mode:'move',size:60,hardness:0,opacity:.25},stroke=null,action=null,canceling=false,previewTimer=null,lastPreview=0;
   let zoomMode='fit',zoomScale=1,panX=0,panY=0,panGesture=null,spaceHeld=false,hovering=false;
+  // Split comparison: the original photo drawn into the output frame (same placement, scale and rotation), revealed left of a divider.
+  let split=null,splitX=.5,splitDrag=null,splitGroup,splitImage,splitUi,splitLine,splitHandle,splitArrows,splitLabels=[];
+  function layoutSplit(){
+    if(!splitGroup)return;
+    const on=!!(split&&result&&visible&&result.sourceTransform);splitGroup.visible(on);splitUi.visible(on);if(!on){layer?.batchDraw();return;}
+    const s=frame.scaleX(),x=splitX*result.width,h=result.height;
+    splitLine.points([x,0,x,h]);splitHandle.setAttrs({x,y:h/2,radius:16/s});splitArrows.setAttrs({x:x-14/s,y:h/2-8/s,width:28/s,fontSize:14/s});
+    const [left,right]=splitLabels;for(const label of splitLabels){label.getText().fontSize(12/s);label.getText().padding(6/s);label.getTag().cornerRadius(4/s);}
+    left.position({x:10/s,y:10/s});right.position({x:result.width-10/s-right.width(),y:10/s});
+    left.opacity(splitX>.08?1:0);right.opacity(splitX<.92?1:0);layer.batchDraw();
+  }
+  function placeSplitImage(){
+    const t=result?.sourceTransform;if(!split||!t){layoutSplit();return;}
+    const unit=split.k*split.r,x0=split.x0,y0=split.y0;
+    splitImage.setAttrs({image:split.image,width:split.image.width,height:split.image.height,rotation:Math.atan2(t.b,t.a)*180/Math.PI,scaleX:Math.hypot(t.a,t.b)/unit,scaleY:Math.hypot(t.a,t.b)/unit,x:t.e-(t.a*x0+t.c*y0)/split.k,y:t.f-(t.b*x0+t.d*y0)/split.k});
+    layoutSplit();
+  }
+  // data: {image: ImageBitmap of the original, r: bitmap px per original px, k: original px per working px, x0, y0: crop origin in original px} or null.
+  function setSplit(data){split=data||null;splitX=.5;splitDrag=null;placeSplitImage();if(host)host.style.cursor=split?'ew-resize':'default';}
   function setInteracting(value){if(interacting===value)return;interacting=value;window.dispatchEvent(new CustomEvent('gray-editor-busy',{detail:value}));}
   function emitZoom(){window.dispatchEvent(new CustomEvent('gray-editor-zoom',{detail:{mode:zoomMode,scale:frame?.scaleX()||1}}));}
   function resize(){
@@ -14,7 +33,7 @@
     const fit=Math.min(w/result.width,h/result.height),s=zoomMode==='fit'?fit:zoomScale;
     const limitX=Math.max(0,(w+result.width*s)/2-Math.min(80,w/3)),limitY=Math.max(0,(h+result.height*s)/2-Math.min(80,h/3));
     panX=clamp(panX,-limitX,limitX);panY=clamp(panY,-limitY,limitY);
-    stage.size({width:w,height:h});frame.position({x:(w-result.width*s)/2+panX,y:(h-result.height*s)/2+panY});frame.scale({x:s,y:s});layer.batchDraw();emitZoom();
+    stage.size({width:w,height:h});frame.position({x:(w-result.width*s)/2+panX,y:(h-result.height*s)/2+panY});frame.scale({x:s,y:s});layoutSplit();emitZoom();
   }
   function setZoom(value='fit'){
     cancelInteraction();
@@ -122,7 +141,7 @@
     if(!stage)return;
     const move=!disabled&&brush.mode==='move'&&!spaceHeld&&!panGesture;shoe.draggable(move);logo.draggable(move);stage.listening(move);
     if(!move)transformer.nodes([]);else if(chosen)select(chosen);
-    hideCursor();host.style.cursor=panGesture?'grabbing':spaceHeld?'grab':'default';host.style.touchAction='none';layer.batchDraw();
+    hideCursor();host.style.cursor=panGesture?'grabbing':spaceHeld?'grab':split?'ew-resize':'default';host.style.touchAction='none';layer.batchDraw();
   }
   function setBrush(value={}){
     const mode=['move','erase','restore'].includes(value.mode)?value.mode:'move',size=Number(value.size),hardness=Number(value.hardness??0),opacity=Number(value.opacity??.25);
@@ -140,7 +159,15 @@
     host=element;callback=onChange;host.tabIndex=0;host.setAttribute('role','img');host.setAttribute('aria-label','可编辑商品画布。拖动鞋子或 Logo，四角等比缩放；柔边画笔调整阴影。按住空格拖动画布。');
     Konva.pixelRatio=Math.min(window.devicePixelRatio||1,2);
     stage=new Konva.Stage({container:host,width:1,height:1});layer=new Konva.Layer();stage.add(layer);frame=new Konva.Group({name:'canvas-frame'});layer.add(frame);
-    background=new Konva.Rect({fill:'#e6e6e6'});frame.add(background);content=new Konva.Group({name:'artwork'});frame.add(content);
+    // A soft shadow and hairline edge make the artboard stand out from the light work surface, whatever its background colour.
+    background=new Konva.Rect({fill:'#e6e6e6',stroke:'rgba(31,46,36,.16)',strokeWidth:1,strokeScaleEnabled:false,shadowColor:'#1d2a20',shadowBlur:22,shadowOpacity:.16,shadowOffset:{x:0,y:6},shadowForStrokeEnabled:false});frame.add(background);content=new Konva.Group({name:'artwork'});frame.add(content);
+    splitGroup=new Konva.Group({name:'split-original',visible:false,listening:false,clipFunc:ctx=>{if(result)ctx.rect(0,0,splitX*result.width,result.height);}});splitImage=new Konva.Image({listening:false});splitGroup.add(splitImage);frame.add(splitGroup);
+    splitUi=new Konva.Group({name:'split-ui',visible:false,listening:false});
+    splitLine=new Konva.Line({stroke:'#fff',strokeWidth:2,strokeScaleEnabled:false,shadowColor:'#000',shadowBlur:4,shadowOpacity:.35});
+    splitHandle=new Konva.Circle({fill:'#fff',stroke:'#267b60',strokeWidth:2,strokeScaleEnabled:false,shadowColor:'#000',shadowBlur:6,shadowOpacity:.25});
+    splitArrows=new Konva.Text({text:'‹ ›',align:'center',fill:'#267b60',fontStyle:'bold'});
+    splitLabels=['原图','成片'].map(text=>{const label=new Konva.Label();label.add(new Konva.Tag({fill:'rgba(25,36,29,.62)'}));label.add(new Konva.Text({text,fill:'#fff'}));return label;});
+    splitUi.add(splitLine,splitHandle,splitArrows,...splitLabels);
     patch=new Konva.Image({name:'shoe-patch',listening:false});content.add(patch);
     shoe=new Konva.Rect({name:'shoe',fill:'rgba(0,0,0,0)',draggable:true});content.add(shoe);
     logo=new Konva.Image({name:'logo',draggable:true});content.add(logo);
@@ -160,7 +187,13 @@
     }
     shoe.on('dragmove transform',syncPatch);shoe.on('dragend',()=>commitShoe(false));shoe.on('transformend',()=>commitShoe(true));logo.on('dragend transformend',commitLogo);
     stage.on('mousedown touchstart',e=>{if(e.target===stage||e.target===background)deselect();});
+    frame.add(splitUi);
     overlay=new Konva.Group({listening:false});frame.add(overlay);
+    // Dragging anywhere on the canvas moves the divider while the comparison is on (editing is paused meanwhile).
+    const moveSplit=event=>{const p=outputPoint(event);splitX=clamp(p.x/result.width,0,1);layoutSplit();};
+    host.addEventListener('pointerdown',event=>{if(!split||!visible||!result||event.button!==0)return;event.preventDefault();event.stopImmediatePropagation();splitDrag=event.pointerId;try{host.setPointerCapture(event.pointerId);}catch{}moveSplit(event);},true);
+    host.addEventListener('pointermove',event=>{if(split&&splitDrag===event.pointerId){event.preventDefault();event.stopImmediatePropagation();moveSplit(event);}},true);
+    for(const name of['pointerup','pointercancel'])host.addEventListener(name,event=>{if(splitDrag===event.pointerId){splitDrag=null;try{host.releasePointerCapture(event.pointerId);}catch{}event.stopImmediatePropagation();}},true);
     cursorEdge=new Konva.Circle({visible:false,stroke:'#252525',opacity:.75,listening:false});overlay.add(cursorEdge);
     cursor=new Konva.Circle({visible:false,stroke:'#fff',opacity:.95,listening:false});overlay.add(cursor);
     hardnessRing=new Konva.Circle({visible:false,stroke:'#fff',opacity:.65,listening:false});overlay.add(hardnessRing);
@@ -208,9 +241,9 @@
     background.size({width:result.width,height:result.height});background.fill(settings.background);
     const clip={x:0,y:0,width:result.width,height:result.height};content.clip(clip);overlay.clip(clip);patch.image(result.patchCanvas);shoe.visible(true);resetGeometry();logo.visible(false);transformer.nodes([]);resize();
     if(result.logoPlacement&&settings.logoEnabled!==false){try{const asset=await GrayAssets.getLogo(settings.logoId||'default');if(ticket!==generation||!visible)return false;const l=result.logoPlacement;logo.setAttrs({image:asset.image,x:l.x,y:l.y,width:l.width,height:l.height,scaleX:1,scaleY:1,rotation:0,opacity:settings.logoOpacity??1,visible:true});}catch{if(ticket!==generation)return false;}}
-    if(chosen&&!disabled)select(chosen);layer.batchDraw();return true;
+    placeSplitImage();if(chosen&&!disabled)select(chosen);layer.batchDraw();return true;
   }
-  function hide(){cancelInteraction();generation++;visible=false;result=null;previewResult=null;if(host)host.hidden=true;deselect();}
+  function hide(){cancelInteraction();generation++;visible=false;result=null;previewResult=null;if(host)host.hidden=true;deselect();layoutSplit();}
   function setDisabled(value){const next=!!value;if(next&&interacting)cancelInteraction();disabled=next;updateInteractionMode();}
-  window.GrayEditor=Object.freeze({mount,show,showPreview,hide,setDisabled,setBrush,setZoom,select,deselect,isInteracting:()=>interacting});
+  window.GrayEditor=Object.freeze({mount,show,showPreview,hide,setDisabled,setBrush,setZoom,select,deselect,setSplit,isInteracting:()=>interacting});
 })();
