@@ -2,15 +2,23 @@
  'use strict';
  const SIZE=1024;
  let nativeAvailable;
+ // Masks are stored as 8-bit alpha. Fresh results are rounded the same way, so a cached photo renders exactly like the first time.
+ function toFloat(bytes){const mask=new Float32Array(bytes.length);for(let i=0;i<bytes.length;i++)mask[i]=bytes[i]/255;return mask;}
  async function identify(rgba,onProgress){
   if(location.protocol==='file:')throw new Error('请关闭此页面，双击文件夹中的“启动工具.cmd”打开工具。');
+  const session=globalThis.GraySession,key=session?await session.maskKey(rgba).catch(()=>null):null;
+  const cached=key?await session.getMask(key):null;
+  if(cached?.length===SIZE*SIZE)return toFloat(cached);
   if(nativeAvailable===undefined)nativeAvailable=await fetch('capabilities').then(r=>r.ok?r.json():null).then(v=>v?.native===true).catch(()=>false);
   if(!nativeAvailable)throw new Error('本地识别服务未启动，请重新双击“启动工具.cmd”。');
   onProgress('正在识别鞋子轮廓，首次处理请稍候…');
   let response;try{response=await fetch('infer',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-Qingtu':'1'},body:rgba,signal:AbortSignal.timeout(250000)});}catch(e){throw new Error(e.name==='TimeoutError'?'这张照片处理超时，请关闭占用较多内存的程序后重试。':'本地连接已关闭，请重新双击“启动工具.cmd”。');}
   if(!response.ok){const data=await response.json().catch(()=>({error:'本地识别未完成，请重试。'}));throw new Error(data.error);}
   const buf=await response.arrayBuffer();if(buf.byteLength!==1024*1024*4)throw new Error('识别结果不完整，请重试。');
-  return new Float32Array(buf);
+  const raw=new Float32Array(buf),bytes=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)bytes[i]=Math.round(Math.max(0,Math.min(1,raw[i]))*255);
+  if(key)session.putMask(key,bytes);
+  return toFloat(bytes);
  }
  if(location.protocol!=='file:')setInterval(()=>fetch('alive').catch(()=>{}),30000);
  function mainComponents(mask){
@@ -74,9 +82,9 @@
    const x0=Math.max(0,Math.floor((box.minX-bw*.4)*ow/SIZE)),x1=Math.min(ow,Math.ceil((box.maxX+bw*.4)*ow/SIZE));
    const y0=Math.max(0,Math.floor((box.minY-bh*.22)*oh/SIZE)),y1=Math.min(oh,Math.ceil((box.maxY+bh*.45)*oh/SIZE));
    const cw=x1-x0,ch=y1-y0,f=Math.min(1,2304/Math.max(cw,ch)),width=Math.max(1,Math.round(cw*f)),height=Math.max(1,Math.round(ch*f));
-   onProgress('正在精修鞋子边缘…');
+   // The refined pass only helps when the crop is noticeably smaller than the photo; a shoe that already fills the frame gains little.
    let fine=null;
-   try{fine=await refine(bmp,x0,y0,cw,ch);}catch{fine=null;}
+   if(Math.max(ow/cw,oh/ch)>=1.35){onProgress('正在精修鞋子边缘…');try{fine=await refine(bmp,x0,y0,cw,ch);}catch{fine=null;}}
    onProgress('正在保留鞋面细节并提取原图阴影…');
    const canvas=new OffscreenCanvas(width,height),ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.imageSmoothingQuality='high';ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.drawImage(bmp,x0,y0,cw,ch,0,0,width,height);
    const rgba=ctx.getImageData(0,0,width,height).data,coarseMask=new Float32Array(width*height),fineMask=fine?new Float32Array(width*height):null;

@@ -109,16 +109,29 @@ const server=http.createServer((req,res)=>{
   if(req.method==='HEAD'){res.end();return;}const stream=fs.createReadStream(file);stream.on('error',()=>res.destroy());stream.pipe(res);
  });
 });
-server.listen(Number(process.env.QINGTU_PORT||0),'127.0.0.1',()=>{
- base=`http://127.0.0.1:${server.address().port}`;console.log(base);startWorker();
- if(!process.argv.includes('--no-open')){
-  // This opens the user's interactive browser; the helper itself stays hidden.
-  const edge=['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(fs.existsSync);
-  const chrome='C:/Program Files/Google/Chrome/Application/chrome.exe';
-  const exe=edge||(fs.existsSync(chrome)?chrome:'rundll32.exe');
-  const args=exe==='rundll32.exe'?['url.dll,FileProtocolHandler',base]:['--new-window',base];
-  const child=spawn(exe,args,{detached:true,stdio:'ignore',windowsHide:true});child.on('error',()=>{});child.unref();
+function openBrowser(url){
+ if(process.argv.includes('--no-open'))return;
+ // This opens the user's interactive browser; the helper itself stays hidden.
+ const edge=['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(fs.existsSync);
+ const chrome='C:/Program Files/Google/Chrome/Application/chrome.exe';
+ const exe=edge||(fs.existsSync(chrome)?chrome:'rundll32.exe');
+ const args=exe==='rundll32.exe'?['url.dll,FileProtocolHandler',url]:['--new-window',url];
+ const child=spawn(exe,args,{detached:true,stdio:'ignore',windowsHide:true});child.on('error',()=>{});child.unref();
+}
+// A fixed port keeps the page's address, and so its saved batch and recognition cache, the same across restarts.
+const preferredPort=Number(process.env.QINGTU_PORT||47853);
+let fallback=false;
+server.on('listening',()=>{base=`http://127.0.0.1:${server.address().port}`;console.log(base);startWorker();openBrowser(base);});
+server.on('error',err=>{
+ if(err.code==='EADDRINUSE'&&!fallback){
+  fallback=true;
+  // Already running? Open that window instead of starting a second copy; otherwise use any free port.
+  http.get({host:'127.0.0.1',port:preferredPort,path:'/alive',headers:{host:`127.0.0.1:${preferredPort}`},timeout:2000},res=>{
+   let body='';res.on('data',c=>body+=c);res.on('end',()=>{try{if(JSON.parse(body).app==='qingtu-gray'){openBrowser(`http://127.0.0.1:${preferredPort}`);process.exit(0);}}catch{}server.listen(0,'127.0.0.1');});
+  }).on('error',()=>server.listen(0,'127.0.0.1')).on('timeout',function(){this.destroy();});
+  return;
  }
+ console.error(err.message);process.exit(1);
 });
-server.on('error',err=>{console.error(err.message);process.exit(1)});
+server.listen(preferredPort,'127.0.0.1');
 setInterval(()=>{if(!pending&&Date.now()-lastSeen>12*60*1000){clearInference();server.close(()=>process.exit(0));}},30000).unref();

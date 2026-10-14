@@ -32,6 +32,9 @@
 - 🎨 **只调商品颜色**：亮度、对比度、色温、饱和度，不影响背景和阴影
 - 🏷️ **Logo 和品牌模板**：上传透明 PNG Logo，常用设置存成模板，下次一键套用
 - 📦 **分层 PSD 导出**：同款多个角度导出到一个 PSD，商品、阴影、Logo、背景各自分层，带可编辑蒙版，可以继续在 Photoshop 里修
+- 💾 **自动保存，刷新不丢**：本批照片、设置和阴影笔画自动保存在本机，刷新或重启后自动恢复
+- ⚡ **识别结果缓存**：处理过的照片再次载入只需几秒，不用重新跑模型；切到其他窗口也会继续处理
+- 📚 **一批最多 60 张**：内存里只保留最近使用的 12 张完整数据，大批量也不卡
 - 🔒 **完全离线**：不联网、不上传，照片只在本机处理
 - 🖱️ **零安装**：解压后双击即可，不用装 Python、Node.js 或 Photoshop
 
@@ -55,7 +58,8 @@
 | 调色 | 亮度、对比度、色温、饱和度，随时恢复原色 |
 | Logo | 内置示例 Logo，可上传自己的 PNG，独立调整位置、大小、透明度 |
 | 模板 | 保存常用设置，最多 20 个模板、12 个 Logo |
-| 导出 | 单张 JPG / PNG、整批 ZIP、整组分层 PSD（含成片） |
+| 导出 | 单张 JPG / PNG、整批 ZIP、整组分层 PSD（含成片，每组最多 12 张） |
+| 批量 | 每批最多 60 张；自动保存与恢复；已识别的照片几秒内重新载入 |
 | 编辑 | 撤销 / 重做 30 步、按住对比、查看原图、100% / 200% 放大检查 |
 
 ## 隐私
@@ -70,7 +74,7 @@
 识别模型是通用的，包、服装、小家电这类主体清楚的商品一般都能抠。构图和阴影参数是按鞋类调的，其他品类可能需要手动调整。
 
 **处理一张要多久？**
-取决于电脑配置。在一台普通办公电脑上，每张约 30 秒（含两次识别）。
+取决于电脑配置。在一台普通办公电脑上，新照片每张约 30 秒（含两次识别）；识别过的照片再次载入每张只需几秒。
 
 **为什么不直接用在线抠图网站？**
 商品图往往还没上架，不方便上传到第三方。在线工具一般也不保留真实阴影，不能批量统一构图，更不能导出分层 PSD。
@@ -91,6 +95,7 @@
 | `server.cjs` | 本机服务：提供页面、调用识别模型、保存品牌模板 |
 | `native-inference.cjs` | 识别模型的后台线程（ONNX Runtime，CPU） |
 | `inference.js` | 抠图：两次识别、主体筛选、生成蒙版 |
+| `session.js` | 本机存储：识别结果缓存、批次自动保存与恢复（IndexedDB） |
 | `processing.js` | 阴影提取、调色、构图与合成 |
 | `editor.js` / `app.js` | 画布编辑与界面逻辑 |
 | `psd-export.js` / `psd-worker.js` | 分层 PSD 导出 |
@@ -130,6 +135,8 @@
 - **Logo and brand templates** for repeatable output
 - **Layered PSD export**: product, shadow, logo and background on separate layers with editable masks, several angles in one file
 - **100% offline and private**: the local server only listens on `127.0.0.1`; nothing is uploaded
+- **Auto-save and recognition cache**: the batch, settings and brush strokes survive a refresh or restart, and photos already recognized reload in seconds
+- **Up to 60 photos per batch**, with memory kept in check by holding full working data for only the 12 most recent
 - **No install**: unzip and double-click, no Python, Node.js or Photoshop required
 
 ### Quick start

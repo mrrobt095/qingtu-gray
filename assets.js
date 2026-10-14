@@ -27,12 +27,20 @@
     writing = task;
     return task;
   }
+  // createImageBitmap instead of <img>.decode(): the latter waits for the page to be painted, so a batch started and then
+  // left in a background window would stall at the first photo. Data URLs are converted by hand (the page's CSP blocks fetching them).
+  async function sourceBlob(source) {
+    if (!source.startsWith('data:')) { const response = await fetch(source); if (!response.ok) throw new Error(); return response.blob(); }
+    const [head, payload] = source.split(','), binary = atob(payload), bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: head.slice(5).split(';')[0] });
+  }
   async function decode(source) {
-    const image = new Image(); image.src = source;
-    try { await image.decode(); } catch { throw new Error('Logo 图片无法读取，请重新导出透明 PNG。'); }
+    let image;
+    try { image = await createImageBitmap(await sourceBlob(source)); } catch { throw new Error('Logo 图片无法读取，请重新导出透明 PNG。'); }
     if (!image.width || !image.height || image.width > 8192 || image.height > 8192 || image.width * image.height > 16000000) throw new Error('Logo 尺寸过大，请导出不超过 1600 万像素的 PNG。');
     const full = document.createElement('canvas'); full.width = image.width; full.height = image.height;
-    const ctx = full.getContext('2d', { willReadFrequently: true }); ctx.drawImage(image, 0, 0);
+    const ctx = full.getContext('2d', { willReadFrequently: true }); ctx.drawImage(image, 0, 0); image.close();
     const data = ctx.getImageData(0, 0, full.width, full.height).data;
     let left = full.width, top = full.height, right = 0, bottom = 0;
     for (let y = 0; y < full.height; y++) for (let x = 0; x < full.width; x++) if (data[(y * full.width + x) * 4 + 3] > 0) {
