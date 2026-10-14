@@ -1,0 +1,16 @@
+# 运行环境和识别模型体积太大（>100 MB），不放进仓库，见 README「从源码运行」
+runtime/
+models/*.onnx
+
+# 本机保存的品牌模板与上传的 Logo
+user-data/
+
+# 测试照片和导出结果
+_cmp/
+*.zip
+*.psd
+
+# 系统文件
+Thumbs.db
+desktop.ini
+.DS_Store

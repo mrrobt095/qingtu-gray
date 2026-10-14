@@ -1,0 +1,83 @@
+轻图 · 灰底工作台 v6 — Third-party components and references
+
+This distribution includes the following model and runtime components.
+Their licenses and notices remain applicable to those components.
+
+1. BiRefNet — general, swin_v1_tiny, epoch 232
+   Project: https://github.com/ZhengPeng7/BiRefNet
+   Model source:
+   https://github.com/ZhengPeng7/BiRefNet/releases/download/v1/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx
+   Bundled file: models/birefnet-tiny.onnx
+   Precision: original FP32 ONNX model; no FP16 conversion is distributed.
+   Size: 224005088 bytes
+   SHA-256: 5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333
+   License: MIT; see licenses/BiRefNet-LICENSE.txt.
+
+2. ONNX Runtime 1.22.0
+   Bundled packages: onnxruntime-node 1.22.0, onnxruntime-common 1.22.0.
+   Platform: Windows x64; this application selects the CPU execution provider.
+   Project: https://github.com/microsoft/onnxruntime
+   Version: https://github.com/microsoft/onnxruntime/tree/v1.22.0
+   License: MIT; see licenses/ONNXRuntime-LICENSE.txt.
+   Upstream third-party notices are reproduced in:
+   licenses/ONNXRuntime-ThirdPartyNotices.txt
+   Official notice source:
+   https://github.com/microsoft/onnxruntime/blob/v1.22.0/ThirdPartyNotices.txt
+   Native DLLs shipped with the Windows x64 package remain subject to their
+   respective upstream terms, as identified in those notices.
+
+3. Node.js 24.19.0
+   Bundled file: runtime/node.exe (Windows x64).
+   Project: https://nodejs.org/
+   Source: https://github.com/nodejs/node/tree/v24.19.0
+   Node.js is distributed under the MIT license and includes third-party
+   components under their own terms. The complete version-specific license
+   and dependency notices are reproduced in licenses/Node-LICENSE.txt.
+   Official notice source:
+   https://github.com/nodejs/node/blob/v24.19.0/LICENSE
+
+4. Color Unmix — method reference
+   Project: https://github.com/dunkel-Stern/photoshop-color-unmix
+   License: MIT; see licenses/Color-Unmix-LICENSE.txt.
+   The local photographic compositing implementation uses the documented
+   alpha color-unmix equation as a method reference. Photoshop is not included
+   or required.
+
+5. Light Converter — implementation reference
+   Project: https://github.com/lightScout/light-converter
+   License: MIT; see licenses/Light-Converter-LICENSE.txt.
+   The project informed the local image-processing design. This application
+   has its own interface and processing pipeline; it does not distribute the
+   complete Light Converter application.
+
+6. Konva 10.7.0
+   Bundled file: vendor/konva.min.js
+   Project: https://github.com/konvajs/konva
+   Package: https://www.npmjs.com/package/konva/v/10.7.0
+   License: MIT; see licenses/Konva-LICENSE.txt.
+   Size: 192898 bytes
+   SHA-256: f10ac73d05ab0a5a53c5093da4b50e4e298d489a261580f387c04f43466837f7
+   Used for the local interactive placement and sizing editor.
+
+7. ag-psd 31.0.3
+   Bundled file: vendor/ag-psd-31.0.3.js (browser bundle).
+   Project: https://github.com/Agamnentzar/ag-psd
+   Package: https://www.npmjs.com/package/ag-psd/v/31.0.3
+   License: MIT; see licenses/ag-psd-LICENSE.txt.
+   Size: 830279 bytes
+   SHA-256: 4c307324dfd1e17aa04b5e1978dbd5779fc375308addd8ed171c3378af3a6a5f
+   Used locally to write RGB PSD artboards, raster layers and masks.
+   Its browser bundle includes these upstream dependencies:
+   - pako 2.1.0: https://github.com/nodeca/pako
+     MIT; see licenses/pako-LICENSE.txt.
+   - base64-js 1.5.1: https://github.com/beatgammit/base64-js
+     MIT; see licenses/base64-js-LICENSE.txt.
+
+Color profile: assets/srgb.icc is a standard sRGB profile generated locally
+for color-consistent PSD export. It is embedded in PSD image resource 1039.
+
+Placeholder asset: assets/default-logo.png is a generic sample logo made for this
+application. Replace it with your own logo before use.
+
+Source links are provided for attribution and traceability. The application
+does not need to access those websites during photo processing.

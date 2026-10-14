@@ -1,0 +1,8 @@
+{
+  "file": "default-logo.png",
+  "canvasWidth": 900,
+  "canvasHeight": 1200,
+  "visibleBounds": { "x": 30, "y": 27, "width": 194, "height": 50 },
+  "hasTransparency": true,
+  "notes": "Placeholder logo. Replace it with your own transparent PNG (same 900x1200 canvas), or upload a logo in the Logo panel."
+}

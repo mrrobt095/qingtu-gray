@@ -1,0 +1,27 @@
+{
+  "name": "BiRefNet general swin_v1_tiny epoch 232",
+  "file": "birefnet-tiny.onnx",
+  "source": "https://github.com/ZhengPeng7/BiRefNet/releases/download/v1/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx",
+  "project": "https://github.com/ZhengPeng7/BiRefNet",
+  "license": "MIT",
+  "license_file": "../licenses/BiRefNet-LICENSE.txt",
+  "precision": "FP32",
+  "conversion": "none; original upstream ONNX file",
+  "size_bytes": 224005088,
+  "sha256": "5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333",
+  "runtime": "onnxruntime-node 1.22.0",
+  "execution_provider": "CPUExecutionProvider",
+  "platform": "win32-x64",
+  "input": {
+    "type": "float32",
+    "shape": [1, 3, 1024, 1024],
+    "layout": "NCHW",
+    "channels": "RGB",
+    "normalization": {
+      "scale": 255,
+      "mean": [0.485, 0.456, 0.406],
+      "std": [0.229, 0.224, 0.225]
+    }
+  },
+  "output_postprocessing": "sigmoid of foreground-mask logits"
+}
